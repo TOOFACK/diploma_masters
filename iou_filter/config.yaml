@@ -1,0 +1,33 @@
+# Configuration for IoU-based image filtering
+
+# Maximum IoU threshold - save only images with mIoU <= max_iou
+# (saves worst-performing images up to this threshold)
+max_iou: 0.9
+
+# Classes to consider when calculating IoU
+# If None or empty list, all classes will be used
+# Example: [0, 1, 2, 13] - only road, sidewalk, building, car
+classes: [8, 11, 3]  # null means all classes
+
+# Maximum number of samples to save (0 = unlimited)
+max_samples: 10
+
+# Dataset configuration
+dataset: "cityscapes"
+workers: 4
+gpu_ids: "0"
+no_cuda: false
+
+# Data loader configuration
+batch_size: 1
+base_size: 500
+crop_size: 500
+
+# Model configuration
+resume: /home/user-3/SensatUrban-BEV-Seg3D/run/cityscapes/Res-Unet/experiment_10/checkpoint.pth.tar  # path to checkpoint
+num_labels: 14
+ignore_index: 255
+
+# Output configuration
+save_dir: "/home/user-3/filtered_val_samples_BEV_sensatUrban"
+save_overlays: true
