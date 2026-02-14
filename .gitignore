@@ -3,3 +3,11 @@ Otchet/
 tmp/
 vectorization/
 /home/pavel/ITMO/NIR2/SensatUrban_train
+
+# Embedded repos cleanup: ignore generated artifacts and heavy data
+**/__pycache__/
+*.pyc
+Pointcept/data/
+Pointcept/exp/
+SensatUrban-BEV-Seg3D/imgs/
+*.whl
