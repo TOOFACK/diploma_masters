@@ -23,10 +23,19 @@ batch_size: 1
 base_size: 500
 crop_size: 500
 
-# Model configuration
-resume: /home/user-3/SensatUrban-BEV-Seg3D/run/cityscapes/Res-Unet/experiment_10/checkpoint.pth.tar  # path to checkpoint
+# BEV model (SegFormer)
+resume: /home/user-3/SensatUrban-BEV-Seg3D/run/cityscapes/Res-Unet/experiment_10/checkpoint.pth.tar
 num_labels: 14
 ignore_index: 255
+
+# Concerto 3D model
+concerto_ckpt: null  # path to Concerto checkpoint (.pth)
+concerto_grid_size: 0.05  # voxel size for GridSample transform
+
+# BEV grid / tiling
+grid_scale: 0.05  # meters per pixel
+grid_size: 25     # tile size in meters
+grid_step: 25     # sliding window step in meters
 
 # Output configuration
 save_dir: "/home/user-3/filtered_val_samples_BEV_sensatUrban"

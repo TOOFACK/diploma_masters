@@ -303,9 +303,9 @@ def main():
     parser = argparse.ArgumentParser("Joint BEV + 3D Segmentation Pipeline")
     parser.add_argument("--input", required=True, help="Path to input PLY file")
     parser.add_argument("--output-dir", required=True, help="Output directory")
-    parser.add_argument("--config", default="config.yaml", help="BEV model config")
+    parser.add_argument("--config", default="config.yaml", help="Path to config.yaml")
 
-    # Mode and merge
+    # Mode and merge (per-run)
     parser.add_argument("--mode", choices=["bev_only", "3d_only", "joint"],
                         default="joint", help="Pipeline mode")
     parser.add_argument("--merge-strategy",
@@ -318,21 +318,19 @@ def main():
     parser.add_argument("--merge-threshold", type=float, default=0.7,
                         help="3D confidence threshold for 3d_priority (default: 0.7)")
 
-    # Concerto
+    # Overrides for config values (None = use config)
     parser.add_argument("--concerto-ckpt", type=str, default=None,
-                        help="Path to Concerto checkpoint")
-    parser.add_argument("--concerto-grid-size", type=float, default=0.05,
-                        help="Concerto GridSample voxel size (default: 0.05)")
+                        help="Override concerto_ckpt from config")
+    parser.add_argument("--concerto-grid-size", type=float, default=None,
+                        help="Override concerto_grid_size from config")
+    parser.add_argument("--grid-scale", type=float, default=None,
+                        help="Override grid_scale from config")
+    parser.add_argument("--grid-size", type=float, default=None,
+                        help="Override grid_size from config")
+    parser.add_argument("--grid-step", type=int, default=None,
+                        help="Override grid_step from config")
 
-    # BEV grid
-    parser.add_argument("--grid-scale", type=float, default=0.05,
-                        help="BEV grid scale (meters per pixel)")
-    parser.add_argument("--grid-size", type=float, default=25,
-                        help="Tile size in meters")
-    parser.add_argument("--grid-step", type=int, default=25,
-                        help="Sliding window step in meters")
-
-    # Debug & output
+    # Debug & output (per-run)
     parser.add_argument("--debug-tiles", type=int, default=None,
                         help="Limit number of tiles (debug mode)")
     parser.add_argument("--vectorize", action="store_true",
@@ -341,39 +339,49 @@ def main():
                         help="Path to vectorization config YAML")
     parser.add_argument("--vectorization-output-dir", type=str, default=None,
                         help="Directory for vectorization outputs")
-    parser.add_argument("--gpu-ids", type=str, default="0",
-                        help="GPU IDs to use (comma-separated)")
+    parser.add_argument("--gpu-ids", type=str, default=None,
+                        help="Override gpu_ids from config")
     parser.add_argument("--no-cuda", action="store_true", default=False,
                         help="Disable CUDA")
 
     args = parser.parse_args()
 
+    # --- Load config (persistent params) ---
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    config_path = os.path.join(script_dir, args.config)
+    if os.path.exists(config_path):
+        print(f"[config] Loading: {config_path}")
+        config = load_config(config_path)
+    else:
+        print(f"[warning] Config not found: {config_path}, using defaults")
+        config = {}
+
+    # Resolve params: CLI overrides config, config overrides hardcoded defaults
+    resume_path = config.get("resume")
+    num_labels = config.get("num_labels", 14)
+    concerto_ckpt = args.concerto_ckpt or config.get("concerto_ckpt")
+    concerto_grid_size = args.concerto_grid_size if args.concerto_grid_size is not None else config.get("concerto_grid_size", 0.05)
+    grid_scale = args.grid_scale if args.grid_scale is not None else config.get("grid_scale", 0.05)
+    grid_size = args.grid_size if args.grid_size is not None else config.get("grid_size", 25)
+    grid_step = args.grid_step if args.grid_step is not None else config.get("grid_step", 25)
+    gpu_ids_str = args.gpu_ids if args.gpu_ids is not None else config.get("gpu_ids", "0")
+    no_cuda = args.no_cuda or config.get("no_cuda", False)
+
     # Device setup
-    use_cuda = (not args.no_cuda) and torch.cuda.is_available()
+    use_cuda = (not no_cuda) and torch.cuda.is_available()
     device = "cuda" if use_cuda else "cpu"
     if use_cuda:
-        gpu_ids = [int(x) for x in args.gpu_ids.split(",")]
+        gpu_ids = [int(x) for x in gpu_ids_str.split(",")]
         torch.cuda.set_device(gpu_ids[0])
 
     print(f"[config] mode={args.mode}, merge={args.merge_strategy}, "
           f"alpha={args.merge_alpha}, threshold={args.merge_threshold}")
+    print(f"[config] grid: scale={grid_scale}, size={grid_size}, step={grid_step}")
     print(f"[device] {device}")
 
     # --- Load BEV model ---
     bev_model = None
     if args.mode in ('bev_only', 'joint'):
-        script_dir = os.path.dirname(os.path.abspath(__file__))
-        config_path = os.path.join(script_dir, args.config)
-        if os.path.exists(config_path):
-            print(f"[config] Loading BEV config from: {config_path}")
-            config = load_config(config_path)
-            resume_path = config.get("resume")
-            num_labels = config.get("num_labels", 14)
-        else:
-            print(f"[warning] Config not found: {config_path}, using defaults")
-            resume_path = None
-            num_labels = 14
-
         print(f"[BEV] Building SegFormer with {num_labels} classes...")
         bev_model = build_model(num_labels)
         if resume_path and os.path.exists(resume_path):
@@ -381,29 +389,32 @@ def main():
         else:
             print("[warning] No BEV checkpoint, using random weights")
 
-        if use_cuda and len(args.gpu_ids.split(",")) > 1:
+        if use_cuda and len(gpu_ids_str.split(",")) > 1:
             bev_model = torch.nn.DataParallel(
                 bev_model,
-                device_ids=[int(x) for x in args.gpu_ids.split(",")]
+                device_ids=[int(x) for x in gpu_ids_str.split(",")]
             )
         bev_model = bev_model.to(device)
 
     # --- Load Concerto model ---
     concerto_infer = None
     if args.mode in ('3d_only', 'joint'):
-        if args.concerto_ckpt is None:
-            raise ValueError("--concerto-ckpt is required for 3d_only/joint mode")
+        if not concerto_ckpt:
+            raise ValueError(
+                "Concerto checkpoint required for 3d_only/joint mode. "
+                "Set concerto_ckpt in config.yaml or pass --concerto-ckpt"
+            )
         concerto_infer = ConcertoInference(
-            ckpt_path=args.concerto_ckpt,
+            ckpt_path=concerto_ckpt,
             device=device,
-            grid_sample_size=args.concerto_grid_size,
+            grid_sample_size=concerto_grid_size,
         )
 
     # --- Load PLY ---
     processor = PLYTileProcessor(
-        grid_scale=args.grid_scale,
-        grid_size=args.grid_size,
-        grid_step=args.grid_step,
+        grid_scale=grid_scale,
+        grid_size=grid_size,
+        grid_step=grid_step,
     )
     print(f"[load] Loading PLY: {args.input}")
     ply_data = processor.load_ply(args.input, reformat=True)
