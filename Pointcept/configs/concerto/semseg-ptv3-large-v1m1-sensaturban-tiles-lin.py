@@ -1,8 +1,9 @@
 _base_ = ["../_base_/default_runtime.py"]
+weight = "/home/user-3/data/weigths/concreto/concerto_large_outdoor.pth"
 
 # misc
-batch_size = 8
-num_worker = 8
+batch_size = 16
+num_worker = 16
 mix_prob = 0.8
 empty_cache = False
 enable_amp = True
@@ -46,18 +47,17 @@ model = dict(
 )
 
 # scheduler
-epoch = 120
-eval_epoch = 20
-optimizer = dict(type="AdamW", lr=0.002, weight_decay=0.01)
+epoch = 50
+eval_epoch = 10
+optimizer = dict(type="AdamW", lr=0.002, weight_decay=0.005)
 scheduler = dict(
     type="OneCycleLR",
-    max_lr=[0.002, 0.0002],
-    pct_start=0.05,
+    max_lr=[0.002],
+    pct_start=0.04,
     anneal_strategy="cos",
     div_factor=10.0,
-    final_div_factor=1000.0,
+    final_div_factor=100.0,
 )
-param_dicts = [dict(keyword="block", lr=0.0002)]
 
 # data
 dataset_type = "SensatUrbanTileDataset"
@@ -180,3 +180,20 @@ data = dict(
         ),
     ),
 )
+
+
+hooks = [
+    dict(
+        type="CheckpointLoader",
+        keywords="module.",
+        replacement="module.backbone.",
+    ),
+    # dict(
+    #     type="CheckpointLoader",
+    # ),
+    dict(type="IterationTimer", warmup_iter=2),
+    dict(type="InformationWriter"),
+    dict(type="SemSegEvaluator"),
+    dict(type="CheckpointSaver", save_freq=None),
+    dict(type="PreciseEvaluator", test_last=False),
+]
