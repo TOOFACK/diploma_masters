@@ -1,0 +1,83 @@
+# Config for real data (mend_line5_full) BEV mask vectorization
+# Colors match infer_sensaturban_scene.py output (BGR for OpenCV)
+# Ground, Parking, Traffic Road all merged to gray
+
+defaults:
+  min_area: 100
+  epsilon: 2.0
+  kernel: 3
+  tolerance: 0
+  primitive: polygon
+
+classes:
+  - name: road_surface
+    class_id: 0
+    mask_color: [128, 128, 128]  # BGR - gray (Ground + Parking + Traffic Road)
+    min_area: 200
+    epsilon: 3.0
+    render:
+      fill_color: [128, 128, 128]
+      stroke_color: [80, 80, 80]
+      stroke_thickness: 2
+      fill: true
+
+  - name: vegetation
+    class_id: 1
+    mask_color: [0, 128, 0]  # BGR - dark green
+    min_area: 200
+    epsilon: 3.0
+    render:
+      fill_color: [34, 139, 34]
+      stroke_color: [0, 100, 0]
+      stroke_thickness: 1
+      fill: true
+
+  - name: building
+    class_id: 2
+    mask_color: [0, 0, 255]  # BGR - red
+    min_area: 100
+    epsilon: 2.0
+    render:
+      fill_color: [0, 0, 220]
+      stroke_color: [0, 0, 0]
+      stroke_thickness: 2
+      fill: true
+
+  - name: wall
+    class_id: 3
+    mask_color: [0, 165, 255]  # BGR - orange
+    min_area: 50
+    epsilon: 2.0
+    render:
+      fill_color: [0, 165, 255]
+      stroke_color: [0, 100, 180]
+      stroke_thickness: 1
+      fill: true
+
+  - name: street_furniture
+    class_id: 8
+    mask_color: [255, 255, 0]  # BGR - cyan
+    min_area: 30
+    epsilon: 1.5
+
+  - name: car
+    class_id: 9
+    mask_color: [255, 0, 0]  # BGR - blue
+    min_area: 30
+    epsilon: 1.5
+    render:
+      fill_color: [255, 0, 0]
+      stroke_color: [0, 0, 0]
+      stroke_thickness: 1
+      fill: true
+
+  - name: water
+    class_id: 12
+    mask_color: [128, 0, 0]  # BGR - navy
+    min_area: 200
+    epsilon: 4.0
+    render:
+      fill_color: [180, 60, 0]
+      stroke_color: [128, 0, 0]
+      stroke_thickness: 1
+      fill: true

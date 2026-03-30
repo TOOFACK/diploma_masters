@@ -1,0 +1,108 @@
+# SensatUrban vectorization config — all 13 classes
+# Per-class params override defaults below.
+
+defaults:
+  min_area: 100
+  epsilon: 2.0
+  kernel: 3
+  tolerance: 5
+  primitive: polygon
+
+classes:
+  - name: ground
+    class_id: 1
+    mask_color: [220, 248, 255]  # BGR
+    min_area: 500
+    epsilon: 4.0
+
+  - name: vegetation
+    class_id: 2
+    mask_color: [220, 220, 220]
+    min_area: 200
+    epsilon: 3.0
+    render:
+      fill_color: [34, 139, 34]
+      stroke_color: [0, 100, 0]
+      stroke_thickness: 1
+      fill: true
+
+  - name: building
+    class_id: 3
+    mask_color: [38, 71, 139]
+    min_area: 100
+    epsilon: 2.0
+    render:
+      fill_color: [139, 71, 38]
+      stroke_color: [0, 0, 0]
+      stroke_thickness: 2
+      fill: true
+
+  - name: wall
+    class_id: 4
+    mask_color: [145, 197, 238]
+
+  - name: bridge
+    class_id: 5
+    mask_color: [180, 130, 70]
+
+  - name: parking
+    class_id: 6
+    mask_color: [58, 238, 179]
+
+  - name: rail
+    class_id: 7
+    mask_color: [61, 139, 110]
+
+  - name: traffic_road
+    class_id: 8
+    mask_color: [105, 105, 105]
+    min_area: 50
+    epsilon: 3.0
+    road_processing:
+      enabled: true
+      max_gap: 25
+      min_gap: 3
+      fill_holes_max_area: 200
+      target_road_count: 2
+      max_join_iterations: 5
+      straighten_enabled: true
+      straighten_step: 3.0
+    render:
+      fill_color: [105, 105, 105]
+      stroke_color: [0, 0, 0]
+      stroke_thickness: 2
+      fill: true
+
+  - name: street_furniture
+    class_id: 9
+    mask_color: [128, 0, 0]
+
+  - name: car
+    class_id: 10
+    mask_color: [92, 92, 205]
+    min_area: 30
+    epsilon: 1.5
+
+  - name: footpath
+    class_id: 11
+    mask_color: [96, 164, 244]
+    min_area: 50
+    epsilon: 3.0
+    road_processing:
+      enabled: true
+      max_gap: 15
+      fill_holes_max_area: 100
+      target_road_count: 3
+      max_join_iterations: 3
+      straighten_enabled: true
+      straighten_step: 3.0
+
+  - name: bike
+    class_id: 12
+    mask_color: [219, 112, 147]
+
+  - name: water
+    class_id: 13
+    mask_color: [225, 228, 255]
+    min_area: 200
+    epsilon: 4.0
