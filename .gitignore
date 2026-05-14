@@ -1,7 +1,6 @@
 data/
 Otchet/
 tmp/
-vectorization/
 /home/pavel/ITMO/NIR2/SensatUrban_train
 
 # Embedded repos cleanup: ignore generated artifacts and heavy data
